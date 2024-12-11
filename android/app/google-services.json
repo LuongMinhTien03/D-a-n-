@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "385809129495",
+    "project_id": "appquanly-57c64",
+    "storage_bucket": "appquanly-57c64.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:385809129495:android:f12ecb6aba0c719c45bc52",
+        "android_client_info": {
+          "package_name": "com.example.doan"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyD72N6k0YoSQhk67McNlVUMCrVcC7IEdWo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
