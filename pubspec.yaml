@@ -127,3 +127,7 @@ flutter_native_splash:
   image: "assets/images/logo_app.png"
   android: true
   web: false
+#
+#  git add .                   # Thêm thay đổi
+#  git commit -m "Mô tả thay đổi của bạn"  # Commit thay đổi
+#  git push                   # Đẩy lên GitHub
