@@ -428,7 +428,7 @@ class _LoginViewState extends State<LoginView> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.lightBlue,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(40),
+              borderRadius: BorderRadius.circular(10),
             ),
             elevation: 1.5,
           ),

@@ -156,7 +156,7 @@ class _RegisterViewState extends State<RegisterView> {
             'Đăng ký',
             style: TextStyle(
               fontSize: 32,
-              color: Colors.black,
+              color: Colors.black87,
               fontFamily: 'Roboto',
               fontWeight: FontWeight.bold,
             ),
@@ -527,7 +527,7 @@ class _RegisterViewState extends State<RegisterView> {
           style: ElevatedButton.styleFrom(
             backgroundColor: Colors.lightBlue,
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(8),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
           child: const Text(
@@ -594,10 +594,10 @@ class _RegisterViewState extends State<RegisterView> {
           backgroundColor: Colors.transparent,
           side: const BorderSide(
             width: 1.5,
-            color: Colors.black,
+            color: Colors.black87,
           ),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(8),
+            borderRadius: BorderRadius.circular(10),
           ),
           shadowColor: Colors.transparent,
         ),
@@ -617,7 +617,7 @@ class _RegisterViewState extends State<RegisterView> {
                 'Đăng ký bằng Google',
                 style: TextStyle(
                   fontSize: 18,
-                  color: Colors.black,
+                  color: Colors.black87,
                   fontFamily: 'Roboto',
                 ),
               ),

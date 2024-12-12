@@ -43,9 +43,18 @@ class _Pagesetting extends State<InfoUserPage> {
         // Xác thực lại tài khoản
         await user.reauthenticateWithCredential(credential);
 
-        // Xóa dữ liệu người dùng trong Firestore
+        // Xóa dữ liệu người dùng trong Firestore, bao gồm cả subcollection
         final firestore = FirebaseFirestore.instance;
-        await firestore.collection('Users').doc(widget.userEntity.id).delete();
+        final userDocRef = firestore.collection('Users').doc(user.uid);
+
+        // Lấy tất cả tài liệu trong subcollection 'classes'
+        final classesSnapshot = await userDocRef.collection('classes').get();
+        for (var doc in classesSnapshot.docs) {
+          await doc.reference.delete(); // Xóa từng tài liệu trong 'classes'
+        }
+
+        // Sau khi xóa các tài liệu con, xóa tài liệu chính của người dùng
+        await userDocRef.delete();
 
         // Xóa tài khoản trên Authentication
         await user.delete();
@@ -285,7 +294,6 @@ class _Pagesetting extends State<InfoUserPage> {
   void _showPasswordDialog() {
     FocusNode focusNode =
         FocusNode(); // Tạo FocusNode để theo dõi trạng thái focus
-
     showDialog(
       context: context,
       builder: (context) {
