@@ -7,6 +7,7 @@ import 'package:doan/domains/authentication_repository/authentication_repository
 import 'package:doan/domains/authentication_repository/entity/user_entity.dart';
 import 'package:doan/domains/authentication_repository/user_repository/user_responsitory.dart';
 import '../Images/stringimage.dart';
+import '../login/login.dart';
 import '../main/waiting page/waiting_page.dart';
 import 'bloc/register_cubit.dart';
 import 'package:get/get.dart';
@@ -455,7 +456,7 @@ class _RegisterViewState extends State<RegisterView> {
               }
               return null;
             },
-            obscureText: false,
+            obscureText: true,
           ),
         ]);
   }
@@ -503,7 +504,7 @@ class _RegisterViewState extends State<RegisterView> {
               color: Colors.black,
               fontFamily: 'Roboto',
             ),
-            obscureText: false,
+            obscureText: true,
             validator: (String? value) {
               if (value == null || value.isEmpty) {
                 return "Vui lòng nhập xác nhận mật khẩu";
@@ -549,24 +550,38 @@ class _RegisterViewState extends State<RegisterView> {
         children: [
           Expanded(
             child: Container(
-              height: 1,
+              height: 0.8,
               width: double.infinity,
-              color: Colors.black,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent,
+                    Colors.black87,
+                  ],
+                ),
+              ),
             ),
           ),
           const Text(
-            ' or ',
+            ' hoặc ',
             style: TextStyle(
-              color: Colors.black,
+              color: Colors.black87,
               fontFamily: 'Roboto',
               fontSize: 16,
             ),
           ),
           Expanded(
             child: Container(
-              height: 1,
+              height: 0.8,
               width: double.infinity,
-              color: Colors.black,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black87,
+                    Colors.transparent,
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -589,11 +604,13 @@ class _RegisterViewState extends State<RegisterView> {
       padding: const EdgeInsets.symmetric(horizontal: 25),
       margin: const EdgeInsets.only(top: 10),
       child: ElevatedButton(
-        onPressed: () {},
+        onPressed: () async {
+          await signInWithGoogleAndCreateUser(context);
+        },
         style: OutlinedButton.styleFrom(
           backgroundColor: Colors.transparent,
           side: const BorderSide(
-            width: 1.5,
+            width: 1.0,
             color: Colors.black87,
           ),
           shape: RoundedRectangleBorder(
@@ -636,7 +653,7 @@ class _RegisterViewState extends State<RegisterView> {
           text: TextSpan(
               text: "Đã có tài khoản? ",
               style: const TextStyle(
-                color: Colors.black,
+                color: Colors.black87,
                 fontFamily: 'Roboto',
                 fontSize: 16,
               ),
@@ -646,7 +663,7 @@ class _RegisterViewState extends State<RegisterView> {
                 style: const TextStyle(
                   fontFamily: 'Roboto',
                   fontSize: 16,
-                  color: Colors.black,
+                  color: Colors.black87,
                   fontWeight: FontWeight.w500,
                 ),
                 recognizer: TapGestureRecognizer()

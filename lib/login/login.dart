@@ -1,4 +1,5 @@
 import 'package:awesome_snackbar_content/awesome_snackbar_content.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -7,6 +8,68 @@ import 'package:doan/register/register.dart';
 import '../ResetPSW/resetpassword.dart';
 import '../domains/data_source/firebase_auth_service.dart';
 import 'bloc/login_cubit.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+
+Future<UserCredential> signInWithGoogleAndCreateUser(
+    BuildContext context) async {
+  // Kiểm tra người dùng hiện tại đã đăng nhập hay chưa
+  final currentUser = FirebaseAuth.instance.currentUser;
+
+  GoogleSignInAccount? googleUser;
+
+  // Nếu chưa đăng nhập, yêu cầu chọn tài khoản
+  if (currentUser == null) {
+    googleUser = await GoogleSignIn().signIn();
+  } else {
+    // Nếu đã đăng nhập, sử dụng signInSilently để đăng nhập mà không chọn tài khoản
+    googleUser = await GoogleSignIn().signInSilently();
+  }
+
+  // Kiểm tra nếu không có tài khoản nào được chọn
+  if (googleUser == null) {
+    throw FirebaseAuthException(
+        message: "Google Sign-In failed", code: "ERROR_SIGN_IN_FAILED");
+  }
+
+  // Lấy thông tin authentication từ tài khoản Google đã chọn
+  final googleAuth = await googleUser.authentication;
+
+  // Tạo credential từ thông tin đăng nhập
+  final credential = GoogleAuthProvider.credential(
+    accessToken: googleAuth.accessToken,
+    idToken: googleAuth.idToken,
+  );
+
+  // Đăng nhập vào Firebase với credential đã tạo
+  final userCredential =
+      await FirebaseAuth.instance.signInWithCredential(credential);
+
+  // Lấy thông tin người dùng từ Google và tạo user trong Firestore
+  final uid = userCredential.user?.uid;
+  final email = googleUser.email;
+  final name = googleUser.displayName;
+
+  if (uid != null && name != null) {
+    User? user2 = FirebaseAuth.instance.currentUser;
+    final user = {
+      'Email': email,
+      'Name': name,
+      'uid': uid,
+      'Password': '123',
+      'CreationTime': user2?.metadata.creationTime?.toLocal().toString(),
+    };
+
+    try {
+      await FirebaseFirestore.instance.collection("Users").doc(uid).set(user);
+      print("Người dùng được tạo thành công với UID: $uid");
+    } catch (error) {
+      print("Lỗi khi tạo người dùng: $error");
+    }
+  }
+
+  return userCredential;
+}
 
 class LoginPage extends StatelessWidget {
   const LoginPage({super.key});
@@ -184,7 +247,7 @@ class _LoginViewState extends State<LoginView> {
             'Quên mật khẩu?',
             style: TextStyle(
               fontFamily: 'Roboto',
-              fontSize: 16,
+              fontSize: 15.5,
               color: Colors.black87.withOpacity(0.7),
             ),
           ),
@@ -195,7 +258,7 @@ class _LoginViewState extends State<LoginView> {
 
   Widget _logoGmail() {
     return Container(
-      margin: const EdgeInsets.only(top: 15), // Căn chỉnh khoảng
+      margin: const EdgeInsets.only(top: 13.1), // Căn chỉnh khoảng
       // cách trên
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.center,
@@ -268,11 +331,11 @@ class _LoginViewState extends State<LoginView> {
               ),
             ],
           ),
-          const SizedBox(height: 4.8),
+          const SizedBox(height: 6.90),
           // Đường gạch chân (Underline)
           const Divider(
-            color: Colors.grey,
-            thickness: 1.5,
+            color: Colors.black38,
+            thickness: 1.0,
             height: 3,
           ),
         ],
@@ -305,32 +368,35 @@ class _LoginViewState extends State<LoginView> {
             horizontal: 0,
           ),
           hintStyle: TextStyle(
-            color: Colors.black38,
+            color: Colors.black26,
             fontFamily: 'Roboto',
             fontSize: 16,
           ),
           errorBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.redAccent, width: 1.5)),
+              borderSide: BorderSide(color: Colors.redAccent, width: 1.0)),
           // Thiết lập viền khi "focus" (khi người dùng nhấn vào TextFormField)
           focusedBorder: UnderlineInputBorder(
-              borderSide: BorderSide(color: Colors.lightBlue, width: 2)),
+              borderSide: BorderSide(color: Colors.lightBlue, width: 1.5)),
           border: UnderlineInputBorder(
               borderSide: BorderSide(
-            color: Colors.grey,
-            width: 2,
+            color: Colors.black26,
+            width: 1.5,
           )),
+          focusedErrorBorder: UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 1.5),
+          ),
           fillColor: Colors.transparent,
           filled: true,
           enabledBorder: UnderlineInputBorder(
             borderSide: BorderSide(
-              color: Colors.grey, // Màu viền
-              width: 1.5, // Độ dày viền khi không tương tác
+              color: Colors.black38, // Màu viền
+              width: 1.0, // Độ dày viền khi không tương tác
             ),
           ),
         ),
         style: const TextStyle(
           fontSize: 16,
-          color: Colors.black,
+          color: Colors.black87,
           fontFamily: 'Roboto',
         ),
       ),
@@ -347,7 +413,7 @@ class _LoginViewState extends State<LoginView> {
       icon: _isSecurePassword
           ? const Icon(Icons.visibility)
           : const Icon(Icons.visibility_off),
-      color: Colors.grey,
+      color: Colors.black45,
     );
   }
 
@@ -384,22 +450,25 @@ class _LoginViewState extends State<LoginView> {
               contentPadding:
                   const EdgeInsets.symmetric(horizontal: 0, vertical: 12),
               hintStyle: const TextStyle(
-                color: Colors.black38,
+                color: Colors.black26,
                 fontFamily: 'Roboto',
                 fontSize: 16,
               ),
+              focusedErrorBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.redAccent, width: 1.5),
+              ),
               enabledBorder: const UnderlineInputBorder(
                 borderSide: BorderSide(
-                  color: Colors.grey, // Màu viền
-                  width: 1.5, // Độ dày viền khi không tương tác
+                  color: Colors.black38, // Màu viền
+                  width: 1.0, // Độ dày viền khi không tương tác
                 ),
               ),
               // Thiết lập viền khi "focus" (khi người dùng nhấn vào TextFormField)
               focusedBorder: const UnderlineInputBorder(
-                  borderSide: BorderSide(color: Colors.lightBlue, width: 2)),
+                  borderSide: BorderSide(color: Colors.lightBlue, width: 1.5)),
               border: const UnderlineInputBorder(
                   borderSide: BorderSide(
-                color: Colors.grey,
+                color: Colors.black26,
                 width: 2,
               )),
               fillColor: Colors.transparent,
@@ -408,7 +477,7 @@ class _LoginViewState extends State<LoginView> {
             ),
             style: const TextStyle(
               fontSize: 16,
-              color: Colors.black,
+              color: Colors.black87,
               fontFamily: 'Roboto',
             ),
             obscureText: _isSecurePassword,
@@ -426,20 +495,32 @@ class _LoginViewState extends State<LoginView> {
             _onHandLoginSubmit();
           },
           style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.lightBlue,
+            backgroundColor: Colors.lightBlue, // Màu mặc định
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(12),
             ),
-            elevation: 1.5,
+            elevation: 0, // Không sử dụng độ cao bóng
+            shadowColor: Colors.transparent, // Không sử dụng bóng đổ
+          ).copyWith(
+            overlayColor: WidgetStateProperty.resolveWith<Color>(
+              (states) {
+                return Colors.blueAccent.withOpacity(0.5); // Màu hiệu ứng nhấn
+              },
+            ),
           ),
-          child: const Text(
-            'Đăng Nhập',
-            style: TextStyle(
-              color: Colors.white,
-              fontFamily: 'Roboto',
-              fontSize: 18,
-            ),
-          )),
+          child: Ink(
+              decoration: BoxDecoration(
+                color: Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Text(
+                'Đăng Nhập',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontFamily: 'Roboto',
+                  fontSize: 18,
+                ),
+              ))),
     );
   }
 
@@ -451,24 +532,38 @@ class _LoginViewState extends State<LoginView> {
         children: [
           Expanded(
             child: Container(
-              height: 1,
+              height: 0.8,
               width: double.infinity,
-              color: Colors.black,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.transparent, // Mờ dần ở bên trái
+                    Colors.black87, // Màu đen ở giữa
+                  ],
+                ),
+              ),
             ),
           ),
           const Text(
-            ' or ',
+            ' hoặc ',
             style: TextStyle(
-              color: Colors.black,
+              color: Colors.black87,
               fontFamily: 'Roboto',
               fontSize: 16,
             ),
           ),
           Expanded(
             child: Container(
-              height: 1,
+              height: 0.8,
               width: double.infinity,
-              color: Colors.black,
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [
+                    Colors.black87, // Màu đen ở giữa
+                    Colors.transparent, // Mờ dần ở bên phải
+                  ],
+                ),
+              ),
             ),
           ),
         ],
@@ -490,10 +585,8 @@ class _LoginViewState extends State<LoginView> {
         width: 45,
         height: 45,
         child: GestureDetector(
-          onTap: () {
-            // Action to be performed when the button is tapped
-            print('Google login button tapped');
-            // You can navigate to another screen, show a dialog, or trigger a login process here
+          onTap: () async {
+            await signInWithGoogleAndCreateUser(context);
           },
           child: Container(
             decoration: BoxDecoration(
@@ -529,7 +622,7 @@ class _LoginViewState extends State<LoginView> {
           text: TextSpan(
               text: "Chưa có tài khoản? ",
               style: const TextStyle(
-                color: Colors.black,
+                color: Colors.black87,
                 fontFamily: 'Roboto',
                 fontSize: 16,
               ),

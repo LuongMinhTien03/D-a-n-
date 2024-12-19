@@ -17,6 +17,7 @@ class UserEntity extends Equatable {
     };
   }
 
+
   factory UserEntity.fromSnapshot(
       DocumentSnapshot<Map<String, dynamic>> document) {
     final data = document.data()!;

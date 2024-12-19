@@ -4,6 +4,7 @@ import 'package:doan/main/waiting%20page/setting_account/setting_profile/setting
 import 'package:doan/main/waiting%20page/waiting_page.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../../Images/stringimage.dart';
 import '../../../domains/authentication_repository/entity/user_entity.dart';
 import '../../../login/login.dart';
@@ -16,6 +17,41 @@ class InfoUserPage extends StatefulWidget {
 
   @override
   State<StatefulWidget> createState() => _Pagesetting();
+}
+
+Widget _buildCurvedHeader() {
+  return ClipPath(
+    clipper: CurvedClipper(),
+    child: Container(
+      height: 280,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [Colors.blueAccent.shade700, Colors.lightBlue],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+    ),
+  );
+}
+
+class CurvedClipper extends CustomClipper<Path> {
+  @override
+  Path getClip(Size size) {
+    final path = Path();
+    path.lineTo(0, size.height); // Góc trái dưới vuông góc
+    path.lineTo(size.width - 50, size.height); // Di chuyển đến gần góc phải
+    path.quadraticBezierTo(
+      size.width, size.height, // Điểm điều khiển cho đường cong
+      size.width, size.height - 50, // Điểm cuối của bo tròn
+    );
+    path.lineTo(size.width, 0); // Đường thẳng lên đến đỉnh
+    path.close(); // Đóng đường path
+    return path;
+  }
+
+  @override
+  bool shouldReclip(CustomClipper<Path> oldClipper) => false;
 }
 
 class _Pagesetting extends State<InfoUserPage> {
@@ -71,26 +107,24 @@ class _Pagesetting extends State<InfoUserPage> {
         // Hiển thị thông báo thành công
         _showErrorSnackBar("Thành công", "Tài khoản và dữ liệu đã bị xóa.",
             ContentType.success);
-      } catch (e) {
-        // Nếu có lỗi, xác định lỗi và hiển thị thông báo tương ứng
+      } on FirebaseAuthException catch (_) {
+        // Nếu có lỗi xác thực, kiểm tra mã lỗi
         String? error;
         String? title;
         ContentType contentType;
 
-        if (e
-            .toString()
-            .contains('We have blocked all requests from this device')) {
-          title = "Cảnh báo";
-          error = "Vui lòng thử lại sau";
-          contentType = ContentType.failure;
-        } else {
-          title = "Ôi chao!";
-          error = "Mật khẩu sai.";
-          contentType = ContentType.warning;
-        }
+        title = "Lỗi";
+        error = "Vui lòng nhập đúng mật khẩu";
+        contentType = ContentType.failure;
 
         // Hiển thị thông báo lỗi
         _showErrorSnackBar(title, error, contentType);
+      } catch (e) {
+        // Lỗi khác
+        _showErrorSnackBar(
+            "Lỗi",
+            "Đã xảy ra sự cố trong quá trình xóa tài khoản.",
+            ContentType.failure);
       }
     }
   }
@@ -118,55 +152,95 @@ class _Pagesetting extends State<InfoUserPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: colorBackgr, // Màu nền tổng thể của trang
-      appBar: AppBar(
-        backgroundColor: colorBackgr,
-        // Màu nền tổng thể của trang
-        centerTitle: true,
-        title: Text(
-          'Cài đặt tài khoản',
-          style: TextStyle(
-            color: Colors.black.withOpacity(0.8),
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-        scrolledUnderElevation: 0.0,
-        leading: IconButton(
-          onPressed: () async {
-            final result = await Navigator.pushReplacement(
-              context,
-              MaterialPageRoute(
-                builder: (context) => MainPage(),
+      backgroundColor: colorBackgr,
+      body: Stack(
+        children: [
+          // _buildCurvedHeader() được đặt đầu tiên để phủ lên AppBar
+          _buildCurvedHeader(),
+          Scaffold(
+            backgroundColor: Colors.transparent, // Làm nền Scaffold trong suốt
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              // AppBar trong suốt
+              elevation: 0,
+              // Bỏ bóng
+              centerTitle: true,
+              title: Text(
+                'Cài đặt tài khoản',
+                style: TextStyle(
+                  color: Colors.black.withOpacity(0.8),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            );
+              leading: IconButton(
+                onPressed: () async {
+                  final result = await Navigator.pushReplacement(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => MainPage(),
+                    ),
+                  );
 
-            // Update userEntity if needed
-            if (result != null) {
-              setState(() {
-                userEntity = result; // Assign the result to userEntity
-              });
-            }
-          },
-          icon: const Icon(
-            Icons.arrow_back_ios_new_rounded,
-            size: 22,
-            color: Colors.black54,
+                  if (result != null) {
+                    setState(() {
+                      userEntity = result;
+                    });
+                  }
+                },
+                icon: const Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 22,
+                  color: Colors.black54,
+                ),
+              ),
+            ),
+            body: SingleChildScrollView(
+              child: Container(
+                margin: const EdgeInsets.symmetric(horizontal: 20)
+                    .copyWith(top: 20),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SizedBox(height: 180),
+                    // Khoảng trống để không trùng với _buildCurvedHeader()
+                    _buildForm(widget.userEntity),
+                    SizedBox(height: 20),
+                    _editProfile(),
+                    SizedBox(height: 12),
+                    _deleteUser(),
+                  ],
+                ),
+              ),
+            ),
           ),
-        ),
+        ],
       ),
-      body: SingleChildScrollView(
-        child: Container(
-          margin: const EdgeInsets.symmetric(horizontal: 20).copyWith(top: 20),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.start,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _avatar(),
-              _settingAccount(widget.userEntity),
-              _settingLast(),
-            ],
+    );
+  }
+
+  Widget _buildForm(UserEntity userEntity) {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 15),
+      padding: EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 8,
+            offset: Offset(0, 4),
           ),
-        ),
+        ],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Column(
+        children: [
+          // Avatar
+          SizedBox(height: 10),
+          _avatar(),
+          SizedBox(height: 5),
+          _settingAccount(userEntity),
+        ],
       ),
     );
   }
@@ -219,74 +293,227 @@ class _Pagesetting extends State<InfoUserPage> {
     );
   }
 
-  Widget _settingLast() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        ElevatedButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => SettingProfile(
-                    userEntity:
-                        widget.userEntity), // Truyền đối tượng userEntity
-              ),
-            );
-          },
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Colors.blue, // Màu nền của nút
-            shape: const StadiumBorder(), // Hình dáng bo tròn
-            elevation: 1, // Độ bóng đổ
-            shadowColor: Colors.black.withOpacity(0.5),
-            // Màu sắc bóng đổ
-          ).copyWith(
-            backgroundColor:
-                WidgetStateProperty.all(Colors.blue), // Nền khi nút được nhấn
+  Widget _editProfile() {
+    final user = FirebaseAuth.instance.currentUser;
+    bool isGoogleLogin =
+        user?.providerData.any((info) => info.providerId == 'google.com') ??
+            false;
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 15),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 5,
+            offset: Offset(0, 2),
           ),
-          child: Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 25),
-            child: const Text(
-              "Sửa thông tin",
-              style: TextStyle(
-                fontSize: 17,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
+        ],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => SettingProfile(
+                  userEntity: widget.userEntity), // Truyền đối tượng userEntity
+            ),
+          );
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white, // Màu nền của nút
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)), // Hình dáng bo tròn
+          elevation: 0.0, // Độ bóng đổ
+          shadowColor: Colors.black.withOpacity(0.5),
+          // Màu sắc bóng đổ
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith<Color>(
+            (states) {
+              return Colors.lightBlueAccent
+                  .withOpacity(0.1); // Màu hiệu ứng nhấn
+            },
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 25),
+          child: Text(
+            isGoogleLogin ? "Xem thông tin" : "Sửa thông tin",
+            style: const TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w600,
+              color: Colors.lightBlue,
             ),
           ),
         ),
-        SizedBox(height: 16),
-        Divider(
-          color: Colors.black45,
-        ),
-        SizedBox(height: 8),
-        GestureDetector(
-          onTap: () {
-            // Hiển thị hộp thoại nhập mật khẩu
-            _showPasswordDialog();
-          },
-          child: Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.remove_circle_outline_rounded, // Biểu tượng xóa
-                color: Colors.red,
-                size: 25,
-              ),
-              SizedBox(width: 8),
-              const Text(
-                "Xóa tài khoản",
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.w500,
-                  color: Colors.red,
-                ),
-              ),
-            ],
+      ),
+    );
+  }
+
+  Widget _deleteUser() {
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: 15),
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 5,
+            offset: Offset(0, 2),
+          ),
+        ],
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: ElevatedButton(
+        onPressed: () {
+          _showDeleteAccountDialog();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.white, // Màu nền của nút
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(10)), // Hình dáng bo tròn
+          elevation: 0.0, // Độ bóng đổ
+          shadowColor: Colors.black.withOpacity(0.5),
+          // Màu sắc bóng đổ
+        ).copyWith(
+          overlayColor: WidgetStateProperty.resolveWith<Color>(
+            (states) {
+              return Colors.red.withOpacity(0.1); // Màu hiệu ứng nhấn
+            },
           ),
         ),
-      ],
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 25),
+          child: Text(
+            "Xóa tài khoản",
+            style: TextStyle(
+              fontSize: 17,
+              fontWeight: FontWeight.w500,
+              color: Colors.red,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  //--------------------------------
+  Future<void> _deleteAccount() async {
+    final user =
+        FirebaseAuth.instance.currentUser; // Lấy thông tin user hiện tại
+    if (user == null) return;
+
+    try {
+      // Xóa dữ liệu người dùng trong Firestore, bao gồm cả subcollection
+      final firestore = FirebaseFirestore.instance;
+      final userDocRef = firestore.collection('Users').doc(user.uid);
+
+      // Lấy tất cả tài liệu trong subcollection 'classes'
+      final classesSnapshot = await userDocRef.collection('classes').get();
+      for (var doc in classesSnapshot.docs) {
+        await doc.reference.delete(); // Xóa từng tài liệu trong 'classes'
+      }
+
+      // Sau khi xóa các tài liệu con, xóa tài liệu chính của người dùng
+      await userDocRef.delete();
+
+      // Xóa tài khoản người dùng khỏi Firebase Authentication
+      await user.delete();
+
+      // Đăng xuất khỏi Google Sign-In để xóa session
+      await GoogleSignIn().signOut();
+
+      if (mounted) {
+        // Điều hướng đến màn hình Login
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => LoginPage()),
+        );
+      }
+
+      // Hiển thị thông báo thành công
+      _showErrorSnackBar("Thành công", "Tài khoản và dữ liệu đã bị xóa.",
+          ContentType.success);
+    } catch (e) {
+      print("Lỗi khi xoá tài khoản hoặc dữ liệu Firestore: $e");
+    }
+  }
+
+  void _showDeleteAccountDialog() {
+    final user = FirebaseAuth.instance.currentUser;
+
+    // Kiểm tra người dùng có đang đăng nhập bằng Google hay không
+    bool isGoogleUser = user?.providerData.any(
+          (provider) => provider.providerId == "google.com",
+        ) ??
+        false;
+
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16), // Bo góc dialog
+          ),
+          title: Text(
+            'Xác nhận xóa tài khoản',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 18,
+              color: Colors.black.withOpacity(0.8),
+            ),
+          ),
+          content: Text(
+            isGoogleUser
+                ? "Bạn có chắc muốn xoá tài khoản không?"
+                : "Vui lòng xác minh mật khẩu để xoá tài khoản này.",
+            textAlign: TextAlign.center,
+          ),
+          actions: [
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.grey[200],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () {
+                Navigator.pop(context);
+              },
+              child: Text(
+                'Hủy',
+                style: TextStyle(
+                  color: Colors.black.withOpacity(0.75),
+                ),
+              ),
+            ),
+            TextButton(
+              style: TextButton.styleFrom(
+                backgroundColor: Colors.red,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onPressed: () async {
+                if (isGoogleUser) {
+                  await _deleteAccount();
+                } else {
+                  Navigator.pop(context);
+                  _showPasswordDialog(); // Hiển thị hộp thoại nhập mật khẩu
+                }
+              },
+              child: Text(
+                'Xoá',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -410,19 +637,27 @@ class InfoUser extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Trả về false để vô hiệu hóa nút back của thiết bị
-        return false;
-      },
+    return PopScope(
+      canPop: customLogic(),
       child: Column(
         children: [
-          Text(
-            userEntity.name ?? 'Default Name',
-            style: TextStyle(
-              fontSize: 22,
-              fontWeight: FontWeight.w600,
-            ),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                userEntity.name ?? 'Default Name',
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+              SizedBox(width: 5), // Khoảng cách giữa tên và biểu tượng
+              Icon(
+                Icons.verified, // Biểu tượng giống dấu tích trong hình
+                color: Colors.amber, // Màu vàng cho biểu tượng
+                size: 22,
+              ),
+            ],
           ),
           Text(
             userEntity.email ?? 'Default Email',
@@ -434,6 +669,13 @@ class InfoUser extends StatelessWidget {
         ],
       ),
     );
+  }
+}
+
+bool customLogic() {
+  {
+    // your logic
+    return false;
   }
 }
 

@@ -122,28 +122,28 @@ class _ResetPasswordState extends State<ResetPassword> {
                         borderRadius: BorderRadius.circular(10),
                         borderSide: const BorderSide(
                           color: Colors.lightBlue,
-                          width: 2,
+                          width: 1.5,
                         ),
                       ),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
                           color: Colors.grey,
-                          width: 1.5,
+                          width: 1.0,
                         ),
                       ),
                       errorBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
                           color: Colors.redAccent,
-                          width: 2,
+                          width: 1.5,
                         ),
                       ),
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide(
                           color: Colors.grey,
-                          width: 1.5,
+                          width: 1.0,
                         ),
                       ),
                     ),
@@ -161,7 +161,7 @@ class _ResetPasswordState extends State<ResetPassword> {
                     },
                     style: const TextStyle(
                       fontSize: 16,
-                      color: Colors.black,
+                      color: Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 20),

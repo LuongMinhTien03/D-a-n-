@@ -6,6 +6,7 @@ import '../../../../Images/stringimage.dart';
 import '../../../../domains/authentication_repository/entity/user_entity.dart';
 import '../../../../domains/authentication_repository/profile_controller/profile_controller.dart';
 import '../setting_account.dart';
+import 'package:intl/intl.dart'; // Để định dạng ngày
 
 // Tạo màn hình mới để chứa InfoUser
 class SettingProfile extends StatefulWidget {
@@ -26,6 +27,7 @@ class _Pageinfo extends State<SettingProfile> {
   final name = TextEditingController();
   final email = TextEditingController();
   final password = TextEditingController();
+  TextEditingController dateController = TextEditingController();
 
   @override
   void initState() {
@@ -35,6 +37,20 @@ class _Pageinfo extends State<SettingProfile> {
     name.text = updatedUserEntity.name!;
     email.text = updatedUserEntity.email!;
     password.text = updatedUserEntity.password!;
+    _getUserCreationDate();
+  }
+
+  // Lấy ngày tạo tài khoản từ Firebase
+  void _getUserCreationDate() {
+    User? user = FirebaseAuth.instance.currentUser;
+
+    if (user != null && user.metadata.creationTime != null) {
+      // Chuyển đổi ngày tạo tài khoản thành định dạng dd/MM/yyyy
+      String formattedDate =
+          DateFormat('dd/MM/yyyy').format(user.metadata.creationTime!);
+      // Cập nhật TextFormField với ngày tạo
+      dateController.text = formattedDate;
+    }
   }
 
   @override
@@ -108,11 +124,12 @@ class _Pageinfo extends State<SettingProfile> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Trả về false để vô hiệu hóa nút back của thiết bị
-        return false;
-      },
+    final user = FirebaseAuth.instance.currentUser;
+    bool isGoogleSignIn =
+        user?.providerData.any((info) => info.providerId == 'google.com') ??
+            false;
+    return PopScope(
+      canPop: customLogic(),
       child: Scaffold(
         backgroundColor: colorBackgr,
         appBar: AppBar(
@@ -180,6 +197,10 @@ class _Pageinfo extends State<SettingProfile> {
                           SizedBox(height: 15),
                           TextFormField(
                             controller: name,
+                            focusNode: isGoogleSignIn
+                                ? AlwaysDisabledFocusNode()
+                                : null,
+                            // Apply the focusNode based on the login status
                             decoration: InputDecoration(
                               contentPadding:
                                   EdgeInsets.symmetric(vertical: 14),
@@ -205,96 +226,151 @@ class _Pageinfo extends State<SettingProfile> {
                             ),
                           ),
                           SizedBox(height: 15),
-                          TextFormField(
-                            controller: password,
-                            obscureText: true,
-                            decoration: InputDecoration(
-                              contentPadding:
-                                  EdgeInsets.symmetric(vertical: 14),
-                              labelText: "Mật khẩu",
-                              labelStyle: TextStyle(color: Colors.black87),
-                              alignLabelWithHint: true,
-                              prefixIcon: Icon(
-                                Icons.fingerprint,
-                                color: Colors.black87,
+                          if (!isGoogleSignIn)
+                            TextFormField(
+                              controller: password,
+                              obscureText: true,
+                              decoration: InputDecoration(
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 14),
+                                labelText: "Mật khẩu",
+                                labelStyle: TextStyle(color: Colors.black87),
+                                alignLabelWithHint: true,
+                                prefixIcon: Icon(
+                                  Icons.fingerprint,
+                                  color: Colors.black87,
+                                ),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                  borderSide: BorderSide(color: Colors.black87),
+                                ),
+                                focusedBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                  borderSide: BorderSide(
+                                      color: Colors.black, width: 1.5),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
                               ),
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(50),
-                              ),
-                              enabledBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(50),
-                                borderSide: BorderSide(color: Colors.black87),
-                              ),
-                              focusedBorder: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(50),
-                                borderSide:
-                                    BorderSide(color: Colors.black, width: 1.5),
-                              ),
-                              filled: true,
-                              fillColor: Colors.grey[200],
                             ),
-                          ),
+                          if (isGoogleSignIn)
+                            TextFormField(
+                              controller: dateController,
+                              focusNode: AlwaysDisabledFocusNode(),
+                              decoration: InputDecoration(
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 14),
+                                labelText: "Giới tính",
+                                labelStyle: TextStyle(color: Colors.black87),
+                                alignLabelWithHint: true,
+                                prefixIcon: Icon(Icons.date_range_rounded,
+                                    color: Colors.black.withOpacity(0.75)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                  borderSide: BorderSide(color: Colors.black87),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
+                              ),
+                            ),
+                          SizedBox(height: 10),
+                          if (isGoogleSignIn)
+                            TextFormField(
+                              controller: dateController,
+                              focusNode: AlwaysDisabledFocusNode(),
+                              decoration: InputDecoration(
+                                contentPadding:
+                                    EdgeInsets.symmetric(vertical: 14),
+                                labelText: "Ngày tạo",
+                                labelStyle: TextStyle(color: Colors.black87),
+                                alignLabelWithHint: true,
+                                prefixIcon: Icon(Icons.date_range_rounded,
+                                    color: Colors.black.withOpacity(0.75)),
+                                border: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                ),
+                                enabledBorder: OutlineInputBorder(
+                                  borderRadius: BorderRadius.circular(50),
+                                  borderSide: BorderSide(color: Colors.black87),
+                                ),
+                                filled: true,
+                                fillColor: Colors.grey[200],
+                              ),
+                            ),
                           SizedBox(height: 10),
                           SizedBox(
                             width: double.infinity,
-                            child: ElevatedButton(
-                              onPressed: () async {
-                                try {
-                                  final updatedUser = UserEntity(
-                                    id: updatedUserEntity.id,
-                                    email: email.text.trim(),
-                                    password: password.text.trim(),
-                                    name: name.text.trim(),
-                                  );
+                            child: isGoogleSignIn
+                                ? null
+                                : ElevatedButton(
+                                    onPressed: () async {
+                                      try {
+                                        final updatedUser = UserEntity(
+                                          id: updatedUserEntity.id,
+                                          email: email.text.trim(),
+                                          password: password.text.trim(),
+                                          name: name.text.trim(),
+                                        );
 
-                                  if (updatedUserEntity.name !=
-                                          name.text.trim() ||
-                                      updatedUserEntity.email !=
-                                          password.text.trim()) {
-                                    await controller
-                                        .updateUserRecord(updatedUser);
-                                  }
+                                        if (updatedUserEntity.name !=
+                                                name.text.trim() ||
+                                            updatedUserEntity.email !=
+                                                password.text.trim()) {
+                                          await controller
+                                              .updateUserRecord(updatedUser);
+                                        }
 
-                                  await reAuthenticateUser(
-                                      email.text.trim(), password.text);
+                                        await reAuthenticateUser(
+                                            email.text.trim(), password.text);
 
-                                  if (updatedUserEntity.password !=
-                                      password.text.trim()) {
-                                    await updateUserPassword(
-                                        password.text.trim());
-                                  }
+                                        if (updatedUserEntity.password !=
+                                            password.text.trim()) {
+                                          await updateUserPassword(
+                                              password.text.trim());
+                                        }
 
-                                  // Chỉ gọi setState một lần khi cần thay đổi trạng thái
-                                  setState(() {
-                                    updatedUserEntity = updatedUser;
-                                  });
+                                        // Chỉ gọi setState một lần khi cần thay đổi trạng thái
+                                        setState(() {
+                                          updatedUserEntity = updatedUser;
+                                        });
 
-                                  _showErrorSnackBar(
-                                      "Thành công",
-                                      "Đã cập nhật thông tin.",
-                                      ContentType.success);
-                                } catch (e) {
-                                  _showErrorSnackBar("Lỗi", "Đã xảy ra lỗi: $e",
-                                      ContentType.failure);
-                                }
-                              },
-                              style: ElevatedButton.styleFrom(
-                                padding: EdgeInsets.symmetric(vertical: 12),
-                                shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(50)),
-                                elevation: 3,
-                                shadowColor: Colors.lightBlue.withOpacity(0.4),
-                                backgroundColor: Colors.blue,
-                              ),
-                              child: const Text(
-                                'Cập nhật',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.w600,
-                                  fontSize: 18,
-                                ),
-                              ),
-                            ),
+                                        _showErrorSnackBar(
+                                            "Thành công",
+                                            "Đã cập nhật thông tin.",
+                                            ContentType.success);
+                                      } catch (e) {
+                                        _showErrorSnackBar(
+                                            "Lỗi",
+                                            "Đã xảy ra lỗi: $e",
+                                            ContentType.failure);
+                                      }
+                                    },
+                                    style: ElevatedButton.styleFrom(
+                                      padding:
+                                          EdgeInsets.symmetric(vertical: 12),
+                                      shape: RoundedRectangleBorder(
+                                          borderRadius:
+                                              BorderRadius.circular(50)),
+                                      elevation: 3,
+                                      shadowColor:
+                                          Colors.lightBlue.withOpacity(0.4),
+                                      backgroundColor: Colors.blue,
+                                    ),
+                                    child: const Text(
+                                      'Cập nhật',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 18,
+                                      ),
+                                    ),
+                                  ),
                           ),
                         ],
                       ),
@@ -319,6 +395,13 @@ class _Pageinfo extends State<SettingProfile> {
         ),
       ),
     );
+  }
+
+  bool customLogic() {
+    {
+      // your logic
+      return false;
+    }
   }
 }
 

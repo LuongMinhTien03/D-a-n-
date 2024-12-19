@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:doan/domains/authentication_repository/entity/user_entity.dart';
 import 'package:doan/domains/authentication_repository/profile_controller/profile_controller.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import '../../domains/authentication_repository/user_repository/user_responsitory.dart';
 import '../../register/register.dart';
 import 'help_page/helppage.dart';
@@ -34,14 +35,15 @@ class MainPage extends StatelessWidget {
             UserEntity userEntity = snapshot.data as UserEntity;
             return PageHall(userEntity: userEntity); // Truyền UserEntity
           } else {
-            return LoginPage();
-            // const Center(child: Text("Chưa đăng nhập"));
+            return const Center(child: Text("Chưa đăng nhập"));
           }
         } else {
           return const Center(
-              child: CircularProgressIndicator(
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-          ));
+            child: CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(
+                  Colors.blue), // Đảm bảo màu xanh
+            ),
+          );
         }
       },
     );
@@ -67,11 +69,8 @@ class _PageHallState extends State<PageHall> {
 
   @override
   Widget build(BuildContext context) {
-    return WillPopScope(
-      onWillPop: () async {
-        // Trả về false để vô hiệu hóa nút back của thiết bị
-        return false;
-      },
+    return PopScope(
+      canPop: customLogic(),
       child: SafeArea(
         top: false,
         child: SingleChildScrollView(
@@ -90,6 +89,13 @@ class _PageHallState extends State<PageHall> {
         ),
       ),
     );
+  }
+}
+
+bool customLogic() {
+  {
+    // your logic
+    return false;
   }
 }
 
@@ -186,9 +192,26 @@ Widget _avatarUser(BuildContext context, UserEntity userEntity) {
                         'Đăng xuất tài khoản',
                         style: TextStyle(color: Colors.black87),
                       ),
-                      onTap: () {
-                        FirebaseAuth.instance.signOut(); // Đăng xuất
-                        Navigator.pop(context);
+                      onTap: () async {
+                        try {
+                          // Đăng xuất khỏi Firebase
+                          await FirebaseAuth.instance.signOut();
+
+                          // Đăng xuất khỏi Google (nếu đang sử dụng Google Sign-In)
+                          await GoogleSignIn().signOut();
+
+                          // Thay thế màn hình hiện tại bằng màn hình đăng nhập hoặc trang chủ
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                                builder: (context) =>
+                                    LoginPage()), // Thay LoginPage() bằng trang của bạn
+                          );
+
+                          print("Đăng xuất thành công");
+                        } catch (e) {
+                          print("Lỗi khi đăng xuất: $e");
+                        }
                       },
                     ),
                   ],
@@ -282,11 +305,19 @@ Widget _myClass(BuildContext context, UserEntity userEntity) {
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
-            return Center(child: CircularProgressIndicator());
+            return Center(child: CircularProgressIndicator(color: Colors.blue));
+          }
+
+          if (snapshot.hasError) {
+            return Center(child: Text('Đã xảy ra lỗi!'));
           }
 
           // List of classes
-          final classList = snapshot.data!.docs;
+          final classList = snapshot.data?.docs ?? [];
+
+          if (classList.isEmpty) {
+            return Center(child: Text('Không có lớp nào.'));
+          }
 
           return Column(
             children: classList.map((doc) {
@@ -296,20 +327,17 @@ Widget _myClass(BuildContext context, UserEntity userEntity) {
                 leading: _iconWithBackground(Icons.class_, Colors.lightBlue),
                 title: Text(className),
                 trailing: _arrowIcon(),
-                // xóa lớp hiện tại
+                // Xóa lớp hiện tại
                 onTap: () async {
                   TextStyle dialogTextStyle = TextStyle(
-                    color: Colors.black
-                        .withOpacity(0.8), // Common text color for the dialog
+                    color: Colors.black.withOpacity(0.8),
                   );
-                  // You might want to confirm the deletion with a dialog or alert.
                   showDialog(
                     context: context,
                     builder: (context) {
                       return AlertDialog(
                         shape: RoundedRectangleBorder(
-                          borderRadius:
-                              BorderRadius.circular(16), // Bo góc cho dialog
+                          borderRadius: BorderRadius.circular(16),
                         ),
                         backgroundColor: Colors.white,
                         title: Text('Xóa lớp', style: dialogTextStyle),
@@ -323,15 +351,11 @@ Widget _myClass(BuildContext context, UserEntity userEntity) {
                             },
                             style: TextButton.styleFrom(
                               backgroundColor: Colors.grey[200],
-                              // Màu nền xám nhẹ cho nút Hủy
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
                             ),
-                            child: Text(
-                              'Hủy',
-                              style: dialogTextStyle,
-                            ),
+                            child: Text('Hủy', style: dialogTextStyle),
                           ),
                           TextButton(
                             onPressed: () async {
@@ -349,7 +373,6 @@ Widget _myClass(BuildContext context, UserEntity userEntity) {
                             },
                             style: TextButton.styleFrom(
                               backgroundColor: Colors.lightBlue,
-                              // Màu nền xanh cho nút Xác nhận
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(8),
                               ),
@@ -375,9 +398,7 @@ Widget _myClass(BuildContext context, UserEntity userEntity) {
         title: Text('Thêm lớp'),
         trailing: _arrowIcon(),
         onTap: () {
-          FocusNode focusNode =
-              FocusNode(); // Tạo FocusNode để theo dõi trạng thái focus
-
+          // Tạo FocusNode để theo dõi trạng thái focus
           TextEditingController classNameController = TextEditingController();
           showModalBottomSheet(
             context: context,
@@ -386,7 +407,9 @@ Widget _myClass(BuildContext context, UserEntity userEntity) {
             shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
             ),
-            builder: (context) {
+            builder: (
+              context,
+            ) {
               return Padding(
                 padding: EdgeInsets.only(
                   left: 16,
@@ -411,31 +434,27 @@ Widget _myClass(BuildContext context, UserEntity userEntity) {
                     ),
                     SizedBox(height: 15),
                     TextField(
-                      focusNode: focusNode,
                       controller: classNameController,
                       decoration: InputDecoration(
                         labelText: "Nhập tên lớp của bạn",
                         // Viền mặc định khi chưa focus
                         border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(15),
                         ),
-
                         enabledBorder: OutlineInputBorder(
                           borderSide: BorderSide(color: Colors.grey, width: 1),
                           // Viền màu xám khi chưa focus
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(15),
                         ),
                         focusedBorder: OutlineInputBorder(
-                          borderSide: BorderSide(color: Colors.blue, width: 2),
+                          borderSide: BorderSide(color: Colors.grey, width: 2),
                           // Viền màu xanh khi focus
-                          borderRadius: BorderRadius.circular(12),
+                          borderRadius: BorderRadius.circular(15),
                         ),
+
                         // Màu label khi chưa focus (màu xám)
                         labelStyle: TextStyle(
-                          color: focusNode.hasFocus
-                              ? Colors.lightBlue // Khi focus, màu chữ là đỏ
-                              : Colors.grey.withOpacity(
-                                  0.8), // Khi không focus, màu chữ là xám
+                          color: Colors.grey, // Khi không focus, màu chữ là xám
                         ),
                       ),
                     ),
@@ -554,6 +573,8 @@ Widget _arrowIcon() {
     color: Colors.black54,
   );
 }
+
+Future<void> signOut() async {}
 
 void showHelpPage(BuildContext context) {
   Navigator.of(context).push(
